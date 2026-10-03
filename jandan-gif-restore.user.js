@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         煎蛋 GIF 还原（mp4 → gif）
 // @namespace    https://github.com/Lianzy-Baimiao/jandan-gif-restore
-// @version      1.4.1
+// @version      1.4.2
 // @description  把煎蛋无聊图/随手拍里用 <video> 播放的 mp4 换回同名的原始 GIF，方便右键复制或拖进 QQ 等 IM 转发
 // @author       白描
 // @license      MIT
@@ -153,10 +153,7 @@
             video.removeAttribute('autoplay');
             video.style.display = 'none';
             // 站点自己的静态缩略图，留着会和 GIF 重复显示
-            if (cfg.hideThumb) {
-                st.thumbs = [...box.querySelectorAll('img.img-min, img.gif-shot-thumb')];
-                for (const n of st.thumbs) n.style.display = 'none';
-            }
+            syncThumbs(video, st);
         });
 
         // 挨个试候选地址（源站 → 镜像），都不行就退回原来的 video
@@ -274,13 +271,27 @@
         }
     }
 
-    // 改了设置之后重新铺一遍：已经换成 GIF 的不动，剩下的按新设置处理
+    // 已经换好的图：GIF 不动，但缩略图开关要跟着设置走。
+    // 只靠 restore() 里的 load 回调的话，这个开关对已换好的图就永远不生效了。
+    function syncThumbs(video, st) {
+        const box = video.parentElement;
+        if (!box) return;
+        if (cfg.hideThumb) {
+            st.thumbs = [...box.querySelectorAll('img.img-min, img.gif-shot-thumb')];
+            for (const n of st.thumbs) n.style.display = 'none';
+        } else if (st.thumbs) {
+            for (const n of st.thumbs) n.style.display = '';
+            st.thumbs = null;
+        }
+    }
+
+    // 改了设置之后重新铺一遍：已经换成 GIF 的不退回，剩下的按新设置处理
     function reapply() {
         makeIO();
         const batch = [];
         for (const v of document.querySelectorAll('video')) {
             const st = state.get(v);
-            if (st && st.restored) continue;
+            if (st && st.restored) { syncThumbs(v, st); continue; }
             if (st && st.btn) { st.btn.remove(); st.btn = null; }
             const candidates = toGifUrl(v.dataset.jdSrc || videoSrc(v));
             if (!candidates) continue;
