@@ -1,7 +1,7 @@
 # 煎蛋 GIF 还原（mp4 → gif）
 
 [![许可 MIT](https://img.shields.io/badge/许可-MIT-blue?style=flat-square)](LICENSE)
-[![油猴脚本](https://img.shields.io/badge/UserScript-1.4.0-ff8c00?style=flat-square)](jandan-gif-restore.user.js)
+[![油猴脚本](https://img.shields.io/badge/UserScript-1.4.1-ff8c00?style=flat-square)](jandan-gif-restore.user.js)
 [![赞赏 爱发电](https://img.shields.io/badge/赞赏-爱发电-946ce6?style=flat-square)](https://ifdian.net/a/lianzy)
 
 煎蛋的无聊图/随手拍把 GIF 转成了 mp4，用 `<video>` 播放。页面上看着没什么区别，
@@ -58,7 +58,8 @@ QQ 我自己在用，没遇到问题。
 - **镜像回源**：站点设置里的「通道2（国内优化）」会把图源指到 dfyun 镜像，
   那边发 mp4 没问题，但取几 MB 的原始 GIF 容易直接断连，
   所以拿 GIF 时先换回源站，失败再退回镜像，最后退回原来的 video
-- **不跳版**：替换前先占住原来的宽度
+- **不跳版**：替换前先占住原来的宽度。一批图一起换的时候先把宽度全量完再统一插节点，
+  避免量宽度和插节点交替触发强制同步布局
 
 ## 常见问题
 
