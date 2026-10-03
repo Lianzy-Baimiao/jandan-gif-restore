@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         煎蛋 GIF 还原（mp4 → gif）
 // @namespace    https://github.com/Lianzy-Baimiao/jandan-gif-restore
-// @version      1.4.0
+// @version      1.4.1
 // @description  把煎蛋无聊图/随手拍里用 <video> 播放的 mp4 换回同名的原始 GIF，方便右键复制或拖进 QQ 等 IM 转发
 // @author       白描
 // @license      MIT
@@ -118,7 +118,16 @@
         if (io) io.unobserve(video);
     }
 
-    function restore(video) {
+    // 量一次 <video> 的宽度，返回能直接写进 style.width 的字符串（量不到返回 ''）。
+    // 读 getBoundingClientRect 会强制同步布局，所以调用方尽量先把一批都量完再插节点。
+    function measure(video) {
+        if (video.style.width) return video.style.width;
+        const w = video.getBoundingClientRect().width;
+        return w ? w + 'px' : '';
+    }
+
+    // width 由下面的批量流程预先量好传进来；手动点按钮那种单个的场合不传，现场量。
+    function restore(video, width) {
         const st = state.get(video);
         if (!st || st.restored) return;
         const box = video.parentElement;
@@ -136,8 +145,8 @@
         img.alt = 'GIF';
 
         // 先占住原来的宽度，替换时不跳版
-        const rect = video.getBoundingClientRect();
-        if (rect.width) img.style.width = video.style.width || rect.width + 'px';
+        if (width === undefined) width = measure(video);
+        if (width) img.style.width = width;
 
         img.addEventListener('load', () => {
             if (video.pause) video.pause();
@@ -207,17 +216,32 @@
         if (cfg.mode !== 'auto' || cfg.margin === 'all') return;
         if (typeof IntersectionObserver !== 'function') return;  // 老浏览器直接退回立即加载
         io = new IntersectionObserver((entries, obs) => {
+            const hit = [];
             for (const e of entries) {
                 if (!e.isIntersecting) continue;
                 obs.unobserve(e.target);
-                restore(e.target);
+                hit.push(e.target);
             }
+            restoreBatch(hit);
         }, { rootMargin: `${cfg.margin}% 0px` });
     }
 
-    function apply(video) {
+    // 先把这一批的宽度全量完，再统一插节点。
+    // 量宽度（读）和插节点（写）交替进行的话，每次读都会强制同步布局，
+    // 一批二十个就是二十次重排。
+    function restoreBatch(videos) {
+        if (!videos.length) return;
+        if (videos.length === 1) { restore(videos[0]); return; }
+        const widths = videos.map(measure);
+        for (let i = 0; i < videos.length; i++) restore(videos[i], widths[i]);
+    }
+
+    // 立即加载的那条路（「立即全部加载」或老浏览器没有 IntersectionObserver）
+    // 会一次处理一整页，所以把 video 先攒进 batch，由调用方量完宽度再统一插。
+    function apply(video, batch) {
         if (cfg.mode === 'manual') arm(video);
         else if (io) io.observe(video);
+        else if (batch) batch.push(video);
         else restore(video);
     }
 
@@ -226,6 +250,7 @@
     function scan() {
         let fresh = 0, bad = 0;
         const badSrc = [];
+        const batch = [];
         for (const v of document.querySelectorAll('video')) {
             const raw = videoSrc(v);
             // 地址没变过就跳过。脚本自己插 <img>、删按钮也会触发 MutationObserver，
@@ -241,8 +266,9 @@
                 continue;
             }
             state.set(v, { candidates });
-            apply(v);
+            apply(v, batch);
         }
+        restoreBatch(batch);
         if (cfg.debug && fresh) {
             console.log('[jd-gif] 新增 video:', fresh, '｜推导不出 GIF 地址:', bad, badSrc);
         }
@@ -251,6 +277,7 @@
     // 改了设置之后重新铺一遍：已经换成 GIF 的不动，剩下的按新设置处理
     function reapply() {
         makeIO();
+        const batch = [];
         for (const v of document.querySelectorAll('video')) {
             const st = state.get(v);
             if (st && st.restored) continue;
@@ -258,8 +285,9 @@
             const candidates = toGifUrl(v.dataset.jdSrc || videoSrc(v));
             if (!candidates) continue;
             state.set(v, { candidates });
-            apply(v);
+            apply(v, batch);
         }
+        restoreBatch(batch);
     }
 
     // 图片列表是 Vue 异步渲染的，翻页也不刷新整页，所以得盯着 DOM。
