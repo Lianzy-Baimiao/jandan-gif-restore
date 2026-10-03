@@ -1,7 +1,7 @@
 # 煎蛋 GIF 还原（mp4 → gif）
 
 [![许可 MIT](https://img.shields.io/badge/许可-MIT-blue?style=flat-square)](LICENSE)
-[![用户脚本](https://img.shields.io/badge/UserScript-1.4.2-ff8c00?style=flat-square)](jandan-gif-restore.user.js)
+[![用户脚本](https://img.shields.io/badge/UserScript-1.4.1-ff8c00?style=flat-square)](jandan-gif-restore.user.js)
 [![赞赏 爱发电](https://img.shields.io/badge/赞赏-爱发电-946ce6?style=flat-square)](https://ifdian.net/a/lianzy)
 
 煎蛋的无聊图/随手拍把 GIF 转成了 mp4，用 `<video>` 播放。页面上看着没什么区别，
@@ -29,7 +29,7 @@
 
 ### 装脚本
 
-**[点此安装](https://raw.githubusercontent.com/LianzyIce/jandan-gif-restore/main/jandan-gif-restore.user.js)**
+**[点此安装](https://raw.githubusercontent.com/Lianzy-Baimiao/jandan-gif-restore/main/jandan-gif-restore.user.js)**
 
 管理器会弹出确认页，确认后刷新煎蛋页面即可。脚本自带 `@updateURL`，之后由管理器自动检查更新。
 
